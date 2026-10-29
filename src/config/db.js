@@ -1,13 +1,17 @@
 import mongoose from "mongoose";
+import { MONGO_URI } from "../utils/config.js";
 
-//Funcion asyncrona para conectar a mongoDB
+// Función asíncrona para conectar a MongoDB
 async function conectarDB() {
     try {
-        await mongoose.connect(process.env.MONGO_URI); //se conecta con el Mongo URI del .env
+        if (!MONGO_URI) {
+            throw new Error("No se definió la variable MONGO_URI en el entorno (.env)");
+        }
+        await mongoose.connect(MONGO_URI);
         console.log('Base de datos conectada');
     } catch (error) {
-        console.log(`Error al conectar a la base de datos: ${error}`);
-        process.exit(1); // si falla la conexion, termina el proceso con error
+        console.log(`Error al conectar a la base de datos: ${error.message || error}`);
+        process.exit(1); // Si falla la conexión crítica, termina el proceso
     }
 }
 

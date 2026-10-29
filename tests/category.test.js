@@ -1,10 +1,10 @@
 import request from "supertest";
 import mongoose from "mongoose";
-import "dotenv/config";
 import app from "../src/app.js";
+import { MONGO_URI } from "../src/utils/config.js";
 
 beforeAll(async () => {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(MONGO_URI);
 });
 
 afterAll(async () => {
