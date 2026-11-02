@@ -8,40 +8,40 @@ const userSchema = new mongoose.Schema(
             trim: true
         },
         email: {
-            type: ?,
+            type: String,
             required: [true, "El email del usuario es obligatorio"],
+            unique: true,
+            lowercase: true,
             trim: true
         },
         password: {
-            type: ?,
+            type: String,
             required: [true, "La contraseña del usuario es obligatorio"],
+            select: false,
             trim: true
         },
         phoneNumber: {
-            type: Number,
-            required: [true, "El telefono del usuario es obligatorio"],
+            type: String,
+            trim: true
         },
-        adress: {
-            type: ?,
-            required: [true, "La dirección del usuario es obligatorio"],
+        address: {
+            type: String,
+            trim: true
         },
-        role_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Role",
-            required: [true, "El ID del rol es obligatorio"]
+        postalCode: {
+            type: String,
+            trim: true
+        },
+        role: {
+            type: String,
+            enum: {
+                values: ['admin', 'client'],
+                message: '{VALUE} no es un rol válido'
+            },
+            default: 'client'
         }
-
     },
     { timestamps: true }
 );
-
-const roleSchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            [true, "El nombre del usuario es obligatorio"],
-        }
-    }
-)
 
 export default mongoose.model("User", userSchema);
