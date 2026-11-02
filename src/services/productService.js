@@ -1,6 +1,20 @@
 import Product from "../models/productModel.js";
+import Category from "../models/categoryModel.js"
+
 
 async function createProduct(productData) {
+    const category = await Category.findById(productData.categoryId)
+    // valido que exista la categoria
+    if (!category) {
+        throw new Error("Category not found");
+    }
+    // si existen variaciones calculo el stock total sumando el stock de cada variante
+    if (productData.variants && productData.variants.length > 0) {
+        productData.stock = productData.variants.reduce(
+            (total, variant) => total + (variant.individualStock || 0),
+            0
+        );
+    }
     const newProduct = new Product(productData);
     await newProduct.save();
     return newProduct;
@@ -14,6 +28,32 @@ async function getProduct(productId) {
     return await Product.findById(productId).populate('categoryId').lean();
 }
 
-async function updateProduct(productId) {
-    return
+async function updateProduct(productId, productData) {
+    // valido que exista la categoria
+    if (productData.categoryId) {
+        const category = await Category.findById(productData.categoryId);
+        if (!category) {
+            throw new Error("Category not found");
+        }
+    }
+    // si hay variantes calculo el stock total sumando el stock de cada variante
+    if (productData.variants && productData.variants.length > 0) {
+        productData.stock = productData.variants.reduce(
+            (total, variant) => total + (variant.individualStock || 0),
+            0
+        );
+    }
+    return await Product.findByIdAndUpdate(productId, productData, { new: true, runValidators: true }).populate('categoryId').lean();
+}
+
+async function deleteProduct(productId) {
+    return await Product.findByIdAndDelete(productId).lean();
+}
+
+export default {
+    createProduct,
+    getAllProducts,
+    getProduct,
+    updateProduct,
+    deleteProduct
 }
