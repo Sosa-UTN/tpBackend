@@ -6,7 +6,7 @@ async function createProduct(productData) {
     const category = await Category.findById(productData.categoryId)
     // valido que exista la categoria
     if (!category) {
-        throw new Error("Category not found");
+        throw new Error("Categoría no encontrada");
     }
     // si existen variaciones calculo el stock total sumando el stock de cada variante
     if (productData.variants && productData.variants.length > 0) {
@@ -17,6 +17,7 @@ async function createProduct(productData) {
     }
     const newProduct = new Product(productData);
     await newProduct.save();
+    await newProduct.populate('categoryId');
     return newProduct;
 }
 
@@ -33,7 +34,7 @@ async function updateProduct(productId, productData) {
     if (productData.categoryId) {
         const category = await Category.findById(productData.categoryId);
         if (!category) {
-            throw new Error("Category not found");
+            throw new Error("Categoría no encontrada");
         }
     }
     // si hay variantes calculo el stock total sumando el stock de cada variante

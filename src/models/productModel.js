@@ -13,10 +13,10 @@ const variantSchema = new mongoose.Schema(
         individualStock: {
             type: Number,
             default: 0,
-            min: [0, "Individual stock cannot be negative"],
+            min: [0, "El stock individual no puede ser negativo"],
             validate: {
                 validator: Number.isInteger,
-                message: "Individual stock must be an integer"
+                message: "El stock individual debe ser un número entero"
             }
         }
     },
@@ -28,17 +28,17 @@ const ProductSchema = new mongoose.Schema(
         categoryId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category",
-            required: [true, "Category ID is required"]
+            required: [true, "El ID de categoría es obligatorio"]
         },
         sku: {
             type: String,
-            required: [true, "Product SKU is required"],
+            required: [true, "El SKU del producto es obligatorio"],
             unique: true,
             trim: true
         },
         name: {
             type: String,
-            required: [true, "Product name is required"],
+            required: [true, "El nombre del producto es obligatorio"],
             trim: true
         },
         description: {
@@ -47,24 +47,24 @@ const ProductSchema = new mongoose.Schema(
         },
         price: {
             type: Number,
-            required: [true, "Product price is required"],
-            min: [0, "Product price cannot be negative"]
+            required: [true, "El precio del producto es obligatorio"],
+            min: [0, "El precio del producto no puede ser negativo"]
         },
         slug: {
             type: String,
-            required: [true, "Product slug is required"],
+            required: [true, "El slug del producto es obligatorio"],
             unique: true,
             trim: true,
             lowercase: true
         },
         stock: {
             type: Number,
-            required: [true, "Product stock is required"],
+            required: [true, "El stock del producto es obligatorio"],
             default: 0,
-            min: [0, "Product stock cannot be negative"],
+            min: [0, "El stock del producto no puede ser negativo"],
             validate: {
                 validator: Number.isInteger,
-                message: "Product stock must be an integer"
+                message: "El stock del producto debe ser un número entero"
             }
         },
         variants: [variantSchema],

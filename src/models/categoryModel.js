@@ -4,18 +4,18 @@ const CategorySchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: [true, "Category name is required"],
+            required: [true, "El nombre de la categoría es obligatorio"],
             trim: true,
             unique: true
         },
         description: {
             type: String,
-            required: [true, "Category description is required"],
+            required: [true, "La descripción de la categoría es obligatoria"],
             trim: true
         },
         slug: {
             type: String,
-            required: [true, "Category slug is required"],
+            required: [true, "El slug de la categoría es obligatorio"],
             trim: true,
             lowercase: true
         },
