@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcrypt"
 
 const userSchema = new mongoose.Schema(
     {
@@ -43,5 +44,12 @@ const userSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
+userSchema.pre("save", async function () {
+    // Si la contraseña no fue modificada (por ej. si solo actualizaron el nombre), no la vuelve a hashear
+    if (!this.isModified("password")) return;
+    // Hashea la contraseña con 10 vueltas de sal
+    this.password = await bcrypt.hash(this.password, 10);
+});
 
 export default mongoose.model("User", userSchema);
