@@ -3,10 +3,10 @@ import userService from "../services/userService.js";
 async function registerUser(req, res) {
     try {
         const userData = req.body;
-        const newUser = await userService.registerUser(userData)
-        return res.status(201).json(newUser)
+        const newUser = await userService.registerUser(userData);
+        return res.status(201).json(newUser);
     } catch (error) {
-        return res.status(400).json({ error: error.message })
+        return res.status(400).json({ error: error.message });
     }
 }
 
@@ -16,16 +16,16 @@ async function loginUser(req, res) {
         const result = await userService.loginUser(email, password);
         return res.status(200).json(result);
     } catch (error) {
-        return res.status(401).json({ error: error.message })
+        return res.status(401).json({ error: error.message });
     }
 }
 
 async function getAllUsers(req, res) {
     try {
         const allUsers = await userService.getAllUsers();
-        return res.status(200).json(allUsers)
+        return res.status(200).json(allUsers);
     } catch (error) {
-        return res.status(400).json({ error: error.message })
+        return res.status(400).json({ error: error.message });
     }
 }
 
