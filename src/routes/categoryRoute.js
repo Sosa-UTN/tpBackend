@@ -1,12 +1,16 @@
 import { Router } from "express";
 import categoryController from "../controllers/categoryController.js";
+import auth from "../middleware/verifyToken.js";
 
 const router = Router();
 
-router.post('/', categoryController.createCategory)
+// rutas publicas
 router.get('/', categoryController.getAllCategories)
 router.get('/:id', categoryController.getCategory)
-router.put('/:id', categoryController.updateCategory)
-router.delete('/:id', categoryController.deleteCategory)
+
+// rutas privadas (Admin)
+router.post('/', auth.verifyToken, auth.verifyAdmin, categoryController.createCategory)
+router.put('/:id', auth.verifyToken, auth.verifyAdmin, categoryController.updateCategory)
+router.delete('/:id', auth.verifyToken, auth.verifyAdmin, categoryController.deleteCategory)
 
 export default router;
