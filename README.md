@@ -1,59 +1,356 @@
-# E-Commerce REST API - Backend TP Final
+# 🛍️ API E-commerce — Indumentaria y Moda Urbana
 
-API REST profesional y robusta para la gestión de un e-commerce de indumentaria y catálogo de productos, desarrollada con **Node.js**, **Express**, **MongoDB Atlas** y **Mongoose**, implementando autenticación y autorización basada en roles (RBAC) con **JSON Web Tokens (JWT)** y encriptación de contraseñas con **Bcrypt**.
+**TP Final Backend — UTN BA**
 
----
+API RESTful para un e-commerce de indumentaria, construida con **Node.js**, **Express** y **MongoDB Atlas**. Implementa CRUD completo para tres entidades (Categorías, Productos y Usuarios), autenticación con JWT, control de acceso por roles (RBAC), y una capa de servicios que separa la lógica de negocio de los controladores.
 
-## 📋 Tabla de Contenidos
-1. [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
-2. [Requisitos Previos e Instalación](#-requisitos-previos-e-instalación)
-3. [Variables de Entorno](#-variables-de-entorno)
-4. [Cómo Correr el Proyecto](#-cómo-correr-el-proyecto)
-5. [Pruebas Automatizadas (Testing)](#-pruebas-automatizadas-testing)
-6. [Cómo está armada la Base de Datos](#-cómo-está-armada-la-base-de-datos)
-7. [Documentación de Endpoints](#-documentación-de-endpoints)
-8. [Datos de Prueba Listos para Usar (Copy & Paste)](#-datos-de-prueba-listos-para-usar-copy--paste)
-
----
-
-## 🏛 Arquitectura del Proyecto
-
-El backend implementa una **arquitectura en capas** limpia y desacoplada, asegurando separación de responsabilidades y mantenibilidad:
+### Arquitectura en capas
 
 ```
 src/
- ├── config/         # Conexión a MongoDB Atlas (db.js)
- ├── models/         # Esquemas de datos Mongoose (Category, Product, User)
- ├── services/       # Lógica de negocio pura (cálculo de stock, encriptación, validaciones)
- ├── controllers/    # Manejo de peticiones HTTP (req, res, códigos de estado)
- ├── routes/         # Enrutadores Express (públicos y protegidos)
- ├── middleware/     # Seguridad: verifyToken (JWT) y verifyAdmin (RBAC)
- ├── utils/          # Configuración centralizada de variables de entorno (config.js)
- ├── seed.js         # Script de sembrado de datos iniciales
- ├── app.js          # Configuración de Express, CORS y middlewares globales
- └── index.js        # Punto de entrada y encendido del servidor (listen)
-tests/               # Batería de 33 tests automáticos de integración con Jest y Supertest
+├── models/         → Esquemas de Mongoose (estructura de datos)
+├── services/       → Lógica de negocio (validaciones, cálculos)
+├── controllers/    → Manejo de request/response HTTP
+├── routes/         → Definición de endpoints y middlewares
+├── middleware/     → Autenticación (JWT) y autorización (Admin)
+├── config/         → Conexión a base de datos
+└── utils/          → Variables de entorno centralizadas
 ```
 
 ---
 
-## ⚙ Requisitos Previos e Instalación
+## 2. Tecnologías Utilizadas
 
-* **Node.js** v18 o superior instalado en el equipo.
-* Cuenta en **MongoDB Atlas** (o instancia local de MongoDB).
-* Gestor de paquetes **npm** (incluido con Node.js).
+| Tecnología | Uso |
+|---|---|
+| **Node.js** | Entorno de ejecución del servidor |
+| **Express 5** | Framework HTTP para las rutas y middlewares |
+| **MongoDB Atlas** | Base de datos NoSQL en la nube |
+| **Mongoose 9** | ODM para modelar los datos y validaciones |
+| **JWT (jsonwebtoken)** | Autenticación por tokens |
+| **Bcrypt** | Hash de contraseñas |
+| **Dotenv** | Variables de entorno |
+| **CORS** | Permitir peticiones cross-origin |
+| **Jest** | Framework de testing |
+| **Supertest** | Testing de endpoints HTTP |
 
-### Instalación de dependencias:
-Abrir una terminal en la carpeta raíz del proyecto y ejecutar:
-```bash
-npm install
+---
+
+## 3. Esquema de la Base de Datos
+
+### Category
+
+| Campo | Tipo | Detalles |
+|---|---|---|
+| `name` | String | Requerido, único |
+| `description` | String | Requerido |
+| `slug` | String | Requerido, lowercase |
+| `active` | Boolean | Default: `true` |
+| `timestamps` | — | `createdAt`, `updatedAt` automáticos |
+
+### Product
+
+| Campo | Tipo | Detalles |
+|---|---|---|
+| `name` | String | Requerido |
+| `sku` | String | Requerido, único |
+| `description` | String | Opcional |
+| `price` | Number | Requerido, min: 0 |
+| `stock` | Number | Entero, min: 0. Se calcula automáticamente si hay variantes |
+| `slug` | String | Requerido, único, lowercase |
+| `active` | Boolean | Default: `true` |
+| `categoryId` | ObjectId | **Referencia** a `Category` (se usa `.populate()`) |
+| `variants` | Array | **Subdocumento embebido** (ver abajo) |
+| `timestamps` | — | `createdAt`, `updatedAt` automáticos |
+
+**Subdocumento `variants`** (embebido, sin `_id`):
+
+| Campo | Tipo | Detalles |
+|---|---|---|
+| `sku` | String | SKU de la variante |
+| `color` | String | Color de la variante |
+| `individualStock` | Number | Entero, min: 0, default: 0 |
+
+> **¿Por qué referencia para `categoryId` y subdocumento para `variants`?**
+>
+> - `categoryId` usa **referencia** (`ref: "Category"` + `.populate()`) porque las categorías son una entidad independiente compartida por muchos productos. Modificar una categoría se refleja automáticamente en todos los productos que la referencian.
+> - `variants` usa **subdocumento embebido** porque las variantes pertenecen exclusivamente a un producto, no se consultan de forma independiente, y siempre se leen junto con el producto padre.
+
+### User
+
+| Campo | Tipo | Detalles |
+|---|---|---|
+| `name` | String | Requerido |
+| `email` | String | Requerido, único, lowercase |
+| `password` | String | Requerido, `select: false` (no se devuelve en queries) |
+| `role` | String | Enum: `admin`, `client`. Default: `client` |
+| `phoneNumber` | String | Opcional |
+| `address` | String | Opcional |
+| `postalCode` | String | Opcional |
+| `timestamps` | — | `createdAt`, `updatedAt` automáticos |
+
+> La contraseña se hashea automáticamente con **bcrypt** en un hook `pre('save')` antes de guardarse en la base de datos.
+
+---
+
+## 4. Instrucciones de Instalación y Ejecución
+
+### Requisitos previos
+
+- Node.js (v18+)
+- Cuenta en MongoDB Atlas (o MongoDB local)
+
+### Pasos
+
+1. **Clonar el repositorio**
+   ```bash
+   git clone <url-del-repositorio>
+   cd tpBackend
+   ```
+
+2. **Instalar dependencias**
+   ```bash
+   npm install
+   ```
+
+3. **Configurar variables de entorno**
+
+   Copiar el archivo de ejemplo y completar los valores:
+   ```bash
+   cp .env.example .env
+   ```
+   Editar `.env` con tus credenciales (ver [Sección 8](#8-configuración-del-archivo-env)).
+
+4. **Sembrar la base de datos** (datos de prueba)
+   ```bash
+   npm run seed
+   ```
+   Esto crea categorías, productos con variantes y dos usuarios de prueba.
+
+5. **Iniciar el servidor**
+   ```bash
+   npm start
+   ```
+   El servidor arranca en `http://localhost:3000`.
+
+6. **Ejecutar los tests**
+   ```bash
+   npm test
+   ```
+   Se ejecutan **33 tests de integración** con Jest y Supertest.
+
+---
+
+## 5. Listado Completo de Endpoints
+
+> **URL Base:** `http://localhost:3000`  
+> **Autenticación:** En rutas protegidas (🔒 Admin), incluir el header: `Authorization: Bearer <token>`
+
+### Raíz
+
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/` | Público | Bienvenida y listado de endpoints disponibles |
+
+### Usuarios (`/api/users`)
+
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| POST | `/api/users/register` | Público | Registrar un nuevo usuario |
+| POST | `/api/users/login` | Público | Iniciar sesión y obtener token JWT |
+| GET | `/api/users` | 🔒 Admin | Listar todos los usuarios |
+| GET | `/api/users/:id` | 🔒 Admin | Obtener un usuario por ID |
+| PUT | `/api/users/:id` | 🔒 Admin | Actualizar un usuario |
+| DELETE | `/api/users/:id` | 🔒 Admin | Eliminar un usuario |
+
+### Categorías (`/api/categories`)
+
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/api/categories` | Público | Listar todas las categorías |
+| GET | `/api/categories/:id` | Público | Obtener una categoría por ID |
+| POST | `/api/categories` | 🔒 Admin | Crear una categoría |
+| PUT | `/api/categories/:id` | 🔒 Admin | Actualizar una categoría |
+| DELETE | `/api/categories/:id` | 🔒 Admin | Eliminar una categoría |
+
+### Productos (`/api/products`)
+
+| Método | Endpoint | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/api/products` | Público | Listar todos los productos (incluye datos de categoría) |
+| GET | `/api/products/:id` | Público | Obtener un producto por ID (incluye datos de categoría) |
+| POST | `/api/products` | 🔒 Admin | Crear un producto |
+| PUT | `/api/products/:id` | 🔒 Admin | Actualizar un producto |
+| DELETE | `/api/products/:id` | 🔒 Admin | Eliminar un producto |
+
+> **🔒 Rutas protegidas:** Requieren enviar el header `Authorization: Bearer <token>` obtenido del login. Solo usuarios con `role: "admin"` pueden acceder.
+
+### Códigos de Estado HTTP Utilizados
+
+| Código | Estado | Cuándo se devuelve |
+|---|---|---|
+| `200` | OK | Petición exitosa en consultas (`GET`), actualizaciones (`PUT`), eliminaciones (`DELETE`) y login exitoso. |
+| `201` | Created | Creación exitosa de un nuevo recurso (`POST` en `/register`, `/api/categories`, `/api/products`). |
+| `400` | Bad Request | Datos inválidos, campos obligatorios faltantes o fallas en validaciones del esquema/negocio. |
+| `401` | Unauthorized | Falta de token (`Authorization`), token inválido/vencido, o credenciales erróneas en login. |
+| `403` | Forbidden | Token válido pero el usuario no tiene permisos suficientes (requiere rol `admin`). |
+| `404` | Not Found | Recurso no encontrado por su ID o ruta no mapeada en la API. |
+| `500` | Internal Server Error | Error no controlado o fallo de conexión en el servidor. |
+
+### Formato Estándar de Errores
+
+Ante cualquier error de cliente o servidor, la API responde con un formato JSON unificado:
+
+```json
+{
+  "error": "Descripción detallada del motivo del error"
+}
 ```
 
 ---
 
-## 🔐 Variables de Entorno
+## 6. Ejemplos de Datos Mock (JSON)
 
-Crear un archivo `.env` en la raíz del proyecto tomando como plantilla el archivo `.env.example`:
+### 🔑 Login de Admin (para obtener el token)
+
+```http
+POST /api/users/login
+```
+```json
+{
+  "email": "admin@tiendaropa.com",
+  "password": "Admin123!"
+}
+```
+
+**Respuesta** (copiar el `token` para las rutas protegidas):
+```json
+{
+  "user": {
+    "_id": "...",
+    "name": "Administrador",
+    "email": "admin@tiendaropa.com",
+    "role": "admin"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+### 👤 Registrar un nuevo usuario
+
+```http
+POST /api/users/register
+```
+```json
+{
+  "name": "Juan Pérez",
+  "email": "juan@mail.com",
+  "password": "MiPassword123",
+  "phoneNumber": "1155667788",
+  "address": "Av. Corrientes 1234, CABA",
+  "postalCode": "C1043"
+}
+```
+
+### 📁 Crear Categoría
+
+```http
+POST /api/categories
+Authorization: Bearer <token>
+```
+```json
+{
+  "name": "Remeras",
+  "description": "Remeras de algodón y poliéster para uso diario",
+  "slug": "remeras"
+}
+```
+
+### ✏️ Actualizar Categoría
+
+```http
+PUT /api/categories/:id
+Authorization: Bearer <token>
+```
+```json
+{
+  "name": "Remeras Oversize",
+  "description": "Remeras oversize de algodón premium"
+}
+```
+
+### 📦 Crear Producto (con variantes)
+
+```http
+POST /api/products
+Authorization: Bearer <token>
+```
+```json
+{
+  "name": "Remera Básica Algodón",
+  "sku": "REM-BAS-001",
+  "description": "Remera de algodón peinado, corte regular",
+  "price": 15999.99,
+  "slug": "remera-basica-algodon",
+  "categoryId": "<ID de la categoría>",
+  "variants": [
+    { "sku": "REM-BAS-001-NEG", "color": "Negro", "individualStock": 25 },
+    { "sku": "REM-BAS-001-BLA", "color": "Blanco", "individualStock": 30 },
+    { "sku": "REM-BAS-001-GRI", "color": "Gris", "individualStock": 15 }
+  ]
+}
+```
+
+> **Nota:** El campo `stock` se calcula automáticamente (25 + 30 + 15 = 70). No es necesario enviarlo.
+
+### ✏️ Actualizar Producto
+
+```http
+PUT /api/products/:id
+Authorization: Bearer <token>
+```
+```json
+{
+  "price": 17499.99,
+  "variants": [
+    { "sku": "REM-BAS-001-NEG", "color": "Negro", "individualStock": 20 },
+    { "sku": "REM-BAS-001-BLA", "color": "Blanco", "individualStock": 35 }
+  ]
+}
+```
+
+---
+
+## 7. Funcionalidades Implementadas y Funcionalidades a Futuro
+
+### ✅ Implementadas
+
+- **CRUD completo** para Categorías, Productos y Usuarios.
+- **Autenticación JWT** con registro y login público (token con expiración de 1 día).
+- **Control de acceso por roles (RBAC):** middleware `verifyToken` + `verifyAdmin` que bloquea con 403 a no-admins.
+- **Hash de contraseñas** con bcrypt en hook `pre('save')` + hash manual en `updateUser` para cubrir `findByIdAndUpdate`.
+- **Cálculo automático de stock:** si un producto tiene variantes, el stock total se calcula sumando `individualStock` con `.reduce()`.
+- **Populate de categorías** en productos: al consultar un producto se devuelve la categoría completa (no solo el ID).
+- **Validación de existencia de categoría** al crear/actualizar productos.
+- **Script de sembrado** (`npm run seed`): genera categorías, productos con variantes y usuarios de prueba listos para probar.
+- **33 tests de integración** con Jest + Supertest (autenticación, autorización, CRUD de las 3 entidades).
+- **Manejador 404** en formato JSON para rutas inexistentes.
+- **Configuración centralizada** de variables de entorno en `utils/config.js`.
+
+### 🔮 Funcionalidades a futuro
+
+- **Carrito de compras y órdenes:** entidades `Cart` y `Order` con estados de pedido.
+- **Integración con MercadoPago:** procesamiento de pagos online.
+- **Subida de imágenes:** integración con Multer + Supabase Storage para fotos de productos.
+- **Filtros y paginación:** búsqueda por categoría, rango de precios y paginación en listados.
+- **Endpoint `changePassword`:** ruta específica que use `.save()` para pasar por el hook `pre('save')`.
+- **Documentación Swagger:** generar documentación interactiva con swagger-jsdoc y swagger-ui-express.
+
+---
+
+## 8. Configuración del Archivo .env
+
+Crear un archivo `.env` en la raíz del proyecto basándose en `.env.example`:
 
 ```env
 # Puerto del servidor
@@ -62,210 +359,13 @@ PORT=3000
 # Cadena de conexión a MongoDB Atlas
 MONGO_URI=mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/<basedatos>?retryWrites=true&w=majority
 
-# Clave secreta para firmar tokens JWT
-JWT_SECRET=tu_clave_secreta_super_segura_aqui
-
-# Configuración de almacenamiento
-STORAGE=local
-CARPETA_IMAGENES=uploads
+# Clave secreta para JWT
+JWT_SECRET=tu_clave_secreta_aqui
 ```
 
----
-
-## 🚀 Cómo Correr el Proyecto
-
-### 1. Sembrar la Base de Datos con Datos de Prueba (`Seed`)
-Para poblar la base de datos limpia con categorías, productos con variantes y usuarios con contraseñas encriptadas:
-```bash
-npm run seed
-```
-
-### 2. Iniciar el Servidor en Desarrollo
-Para levantar el servidor con recarga automática ante cambios (`node --watch`):
-```bash
-npm start
-```
-El servidor responderá en: `http://localhost:3000`
-
----
-
-## 🧪 Pruebas Automatizadas (Testing)
-
-El proyecto incluye **33 tests automáticos de integración** desarrollados con **Jest** y **Supertest**, cubriendo:
-* Validación de esquemas y códigos de error (400, 401, 403, 404).
-* Reglas de negocio: cálculo automático de stock por suma de variantes con `.reduce()`.
-* Cruce de datos con `.populate()`.
-* Seguridad: rechazo de accesos sin token (`401`) y con rol de cliente en rutas de administrador (`403`).
-* Ciclo CRUD completo en todas las colecciones.
-
-Para ejecutar los tests:
-```bash
-npm test
-```
-
----
-
-## 🗄 Cómo está armada la Base de Datos
-
-La base de datos está implementada sobre **MongoDB Atlas** (NoSQL orientada a documentos). Aplica estrategias combinadas de **referenciación** y **datos embebidos**:
-
-### 1. Colección `categories` (Categorías)
-Entidad independiente y referenciada:
-* `name`: String, obligatorio, único, trim.
-* `description`: String, obligatorio.
-* `slug`: String, obligatorio, único, minúsculas.
-* `active`: Boolean (default `true`).
-* `timestamps`: `createdAt` y `updatedAt` automáticos.
-
-### 2. Colección `products` (Productos)
-Combina referencia a categoría con subdocumentos de variantes embebidos:
-* `name`: String, obligatorio.
-* `sku`: String, obligatorio, único.
-* `description`: String.
-* `price`: Number, obligatorio, mínimo 0.
-* `stock`: Number, calculado automáticamente o asignado (entero no negativo).
-* `slug`: String, obligatorio, único.
-* `categoryId`: `ObjectId` que referencia a la colección `categories` (cruzado mediante `.populate()`).
-* `variants`: **Array de subdocumentos embebidos** (`{ _id: false }`):
-  * `sku`: String (código único de la variante).
-  * `color`: String (color / presentación).
-  * `individualStock`: Number (stock de la variante).
-* `active`: Boolean (default `true`).
-
-> **Lógica de negocio aplicada:** Si el producto incluye variantes, el servicio calcula el stock total automáticamente sumando el stock individual de cada variante con `.reduce()`.
-
-### 3. Colección `users` (Usuarios y Autenticación)
-* `name`: String, obligatorio.
-* `email`: String, obligatorio, único, minúsculas (evita duplicados por diferencias de mayúsculas).
-* `password`: String, obligatorio, **oculto por defecto (`select: false`)**.
-  * Se encripta con **Bcrypt** (10 rondas de salt) mediante un hook `pre('save')` automático y en updates con contraseña nueva.
-* `role`: String con `enum: ['admin', 'client']` (default `'client'`).
-* `phoneNumber`, `address`, `postalCode`: Strings opcionales de perfil y envío.
-
----
-
-## 📡 Documentación de Endpoints
-
-### Ruta Base y Bienvenida
-| Método | Endpoint | Acceso | Descripción |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/` | 🌍 Público | Estado de la API y listado de endpoints disponibles |
-
----
-
-### Autenticación y Usuarios (`/api/users`)
-| Método | Endpoint | Acceso | Header Requerido | Descripción |
-| :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/users/register` | 🌍 Público | Ninguno | Registra un nuevo usuario (`client`) con contraseña encriptada |
-| `POST` | `/api/users/login` | 🌍 Público | Ninguno | Inicia sesión y devuelve el token JWT firmado |
-| `GET` | `/api/users` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Lista todos los usuarios de la plataforma |
-| `GET` | `/api/users/:id` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Obtiene un usuario puntual por su ID |
-| `PUT` | `/api/users/:id` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Actualiza datos de un usuario (hashea contraseña si se envía) |
-| `DELETE` | `/api/users/:id` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Elimina un usuario por su ID |
-
----
-
-### Categorías (`/api/categories`)
-| Método | Endpoint | Acceso | Header Requerido | Descripción |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/categories` | 🌍 Público | Ninguno | Lista todas las categorías |
-| `GET` | `/api/categories/:id` | 🌍 Público | Ninguno | Obtiene una categoría puntual por su ID |
-| `POST` | `/api/categories` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Crea una nueva categoría |
-| `PUT` | `/api/categories/:id` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Actualiza una categoría existente |
-| `DELETE` | `/api/categories/:id` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Elimina una categoría por su ID |
-
----
-
-### Productos (`/api/products`)
-| Método | Endpoint | Acceso | Header Requerido | Descripción |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/products` | 🌍 Público | Ninguno | Lista productos (incluye categoría poblada con `.populate`) |
-| `GET` | `/api/products/:id` | 🌍 Público | Ninguno | Obtiene el detalle de un producto por su ID |
-| `POST` | `/api/products` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Crea un producto (calcula stock con variantes y valida categoría) |
-| `PUT` | `/api/products/:id` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Actualiza producto y recalcula stock |
-| `DELETE` | `/api/products/:id` | 🔒 Admin | `Authorization: Bearer <TOKEN>` | Elimina un producto por su ID |
-
----
-
-## 📦 Datos de Prueba Listos para Usar (Copy & Paste)
-
-### 1. Usuarios Preexistentes (Generados por `npm run seed`)
-* 👑 **Administrador:**
-  * **Email:** `admin@tiendaropa.com`
-  * **Password:** `Admin123!`
-* 🛍️ **Cliente:**
-  * **Email:** `cliente@tiendaropa.com`
-  * **Password:** `Cliente123!`
-
----
-
-### 2. Login de Administrador (Obtener Token)
-* **Método:** `POST`
-* **URL:** `http://localhost:3000/api/users/login`
-* **Body (JSON):**
-```json
-{
-  "email": "admin@tiendaropa.com",
-  "password": "Admin123!"
-}
-```
-> Copiar el valor del campo `token` de la respuesta para usarlo en los endpoints protegidos con el header:  
-> `Authorization: Bearer <TOKEN_OBTENIDO>`
-
----
-
-### 3. Crear una Categoría (`POST /api/categories`)
-* **Header:** `Authorization: Bearer <TOKEN_ADMIN>`
-* **Body (JSON):**
-```json
-{
-  "name": "Calzado Urbano",
-  "description": "Zapatillas deportivas y urbanas de lona y cuero sintético.",
-  "slug": "calzado-urbano"
-}
-```
-
----
-
-### 4. Crear un Producto con Variantes (`POST /api/products`)
-* **Header:** `Authorization: Bearer <TOKEN_ADMIN>`
-* **Body (JSON):** *(Reemplazar `"categoryId"` con un `_id` válido de categoría)*
-```json
-{
-  "name": "Zapatillas Canvas Low",
-  "description": "Zapatillas urbanas de lona con suela vulcanizada reforzada.",
-  "price": 28500,
-  "sku": "ZAP-CAN-01",
-  "slug": "zapatillas-canvas-low",
-  "categoryId": "COLOCAR_ACA_EL_ID_DE_LA_CATEGORIA",
-  "variants": [
-    {
-      "sku": "ZAP-CAN-01-NEG",
-      "color": "Negro All Star",
-      "individualStock": 20
-    },
-    {
-      "sku": "ZAP-CAN-01-BLA",
-      "color": "Blanco Óptico",
-      "individualStock": 15
-    }
-  ]
-}
-```
-*(El backend calculará automáticamente `stock: 35` sumando 20 + 15)*.
-
----
-
-### 5. Registrar un Nuevo Usuario (`POST /api/users/register`)
-* **Acceso:** Público
-* **Body (JSON):**
-```json
-{
-  "name": "Gonzalo Rodríguez",
-  "email": "gonzalo@correo.com",
-  "password": "PasswordSeguro2026!",
-  "phoneNumber": "1155667788",
-  "address": "Av. Libertador 3200",
-  "postalCode": "1426"
-}
-```
+> **Credenciales de prueba** (generadas por `npm run seed`):
+>
+> | Rol | Email | Contraseña |
+> |---|---|---|
+> | 👑 Admin | `admin@tiendaropa.com` | `Admin123!` |
+> | 🛍️ Cliente | `cliente@tiendaropa.com` | `Cliente123!` |
