@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../utils/config.js";
 
 function verifyToken(req, res, next) {
     try {
@@ -13,7 +14,7 @@ function verifyToken(req, res, next) {
         const token = authHeader.split(" ")[1];
 
         // 3. Verificamos la firma y fecha de expiración del token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "secreto_default");
+        const decoded = jwt.verify(token, JWT_SECRET);
 
         // 4. Inyectamos los datos del usuario en la petición
         req.user = decoded;

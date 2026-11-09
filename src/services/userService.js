@@ -1,6 +1,7 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../utils/config.js";
 
 
 
@@ -34,7 +35,7 @@ async function loginUser(email, password) {
         // 1. EL PAYLOAD (La información visible dentro del token)
         { id: user._id, role: user.role },
         // 2. LA CLAVE SECRETA (La firma del servidor)
-        process.env.JWT_SECRET || "secreto_default",
+        JWT_SECRET,
         // 3. LAS OPCIONES (El vencimiento)
         { expiresIn: "1d" }
     );
@@ -54,6 +55,9 @@ async function getUser(userId) {
 }
 
 async function updateUser(userId, userData) {
+    if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 10);
+    }
     return await User.findByIdAndUpdate(userId, userData, { new: true, runValidators: true }).lean();
 }
 
