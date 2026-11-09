@@ -96,15 +96,17 @@ src/
 ## 4. Instrucciones de Instalación y Ejecución
 
 ### Requisitos previos
+- **Node.js** (v18 o superior)
+- **NPM** (incluido con Node.js)
+> *Nota: No es necesario tener MongoDB instalado localmente, ya que la API se conecta directamente a un clúster en la nube (MongoDB Atlas).*
 
-- Node.js (v18+)
-- Cuenta en MongoDB Atlas (o MongoDB local)
+---
 
-### Pasos
+### Pasos para levantar el proyecto
 
-1. **Clonar el repositorio**
+1. **Clonar el repositorio y acceder a la carpeta**
    ```bash
-   git clone <url-del-repositorio>
+   git clone https://github.com/Sosa-UTN/tpBackend.git
    cd tpBackend
    ```
 
@@ -113,31 +115,29 @@ src/
    npm install
    ```
 
-3. **Configurar variables de entorno**
+3. **Colocar el archivo `.env` (adjunto en la entrega)**
+   > 📌 **Aviso para la corrección:**  
+   > Copiar y pegar en la raíz del proyecto (junto a `package.json`) el archivo `.env` que fue **adjuntado en la entrega**.  
+   > Dicho archivo ya contiene la conexión activa a MongoDB Atlas y la clave secreta de JWT listas para usar (no es necesario crear ninguna base de datos propia).  
+   > *(En caso de requerir ver la plantilla de variables, se deja disponible el archivo `.env.example`).*
 
-   Copiar el archivo de ejemplo y completar los valores:
-   ```bash
-   cp .env.example .env
-   ```
-   Editar `.env` con tus credenciales (ver [Sección 8](#8-configuración-del-archivo-env)).
-
-4. **Sembrar la base de datos** (datos de prueba)
+4. **Sembrar datos de prueba (Seed)**
    ```bash
    npm run seed
    ```
-   Esto crea categorías, productos con variantes y dos usuarios de prueba.
+   *Limpia las colecciones y carga automáticamente las categorías de indumentaria, productos con variantes y los usuarios de prueba (Admin y Cliente).*
 
-5. **Iniciar el servidor**
-   ```bash
-   npm start
-   ```
-   El servidor arranca en `http://localhost:3000`.
-
-6. **Ejecutar los tests**
+5. **Ejecutar las pruebas automáticas**
    ```bash
    npm test
    ```
-   Se ejecutan **33 tests de integración** con Jest y Supertest.
+   *Ejecuta los **33 tests de integración** con Jest y Supertest (resultado esperado: 3 suites passed, 33 passed).*
+
+6. **Iniciar el servidor**
+   ```bash
+   npm start
+   ```
+   *La API quedará escuchando en `http://localhost:3000` lista para recibir peticiones desde Thunder Client o Postman.*
 
 ---
 
