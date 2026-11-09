@@ -35,7 +35,7 @@ describe("Pruebas del Módulo de Productos (/api/products) con Autorización", (
         testCategory = await Category.create({
             name: "Categoría para Test Productos",
             description: "Categoría auxiliar para pruebas automáticas",
-            slug: `cat-test-prod-${uniqueSuffix}`
+            slug: `aux-category-prod-${uniqueSuffix}`
         });
     });
 

@@ -11,7 +11,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     // Limpieza de datos creados en el test
-    await Category.deleteMany({ slug: { $regex: /^cat-test-/ } });
+    await Category.deleteMany({ slug: { $regex: /^cat-test-(noauth|client|hilos)/ } });
     await mongoose.connection.close();
 });
 

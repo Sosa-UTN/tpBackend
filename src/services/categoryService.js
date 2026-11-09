@@ -15,7 +15,7 @@ async function getCategory(id) {
 }
 
 async function updateCategory(id, categoryData) {
-    return await Category.findByIdAndUpdate(id, categoryData, { new: true }).lean();
+    return await Category.findByIdAndUpdate(id, categoryData, { returnDocument: 'after', runValidators: true }).lean();
 }
 
 async function deleteCategory(id) {

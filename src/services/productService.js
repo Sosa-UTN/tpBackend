@@ -44,7 +44,7 @@ async function updateProduct(productId, productData) {
             0
         );
     }
-    return await Product.findByIdAndUpdate(productId, productData, { new: true, runValidators: true }).populate('categoryId').lean();
+    return await Product.findByIdAndUpdate(productId, productData, { returnDocument: 'after', runValidators: true }).populate('categoryId').lean();
 }
 
 async function deleteProduct(productId) {

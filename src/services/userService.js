@@ -58,7 +58,7 @@ async function updateUser(userId, userData) {
     if (userData.password) {
         userData.password = await bcrypt.hash(userData.password, 10);
     }
-    return await User.findByIdAndUpdate(userId, userData, { new: true, runValidators: true }).lean();
+    return await User.findByIdAndUpdate(userId, userData, { returnDocument: 'after', runValidators: true }).lean();
 }
 
 async function deleteUser(userId) {
